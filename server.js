@@ -53,7 +53,7 @@ app.use('/api/dreams', dreamsRouter);
 let server;
 
 initDatabase().then(() => {
-  app.listen(PORT, () => {
+  server = app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 }).catch(error => {
@@ -64,18 +64,25 @@ initDatabase().then(() => {
 process.on('SIGTERM', gracefulShutdown);
 
 async function gracefulShutdown() {
- console.log('SIGTERM received, shutting down gracefully');
-  // Close the server first (stop accepting new connections)
- server.close(() => {
-   console.log('HTTP server closed');
- });
-  // Then close database pool
- try {
-   await pool.end();
-   console.log('Database pool closed');
-   process.exit(0)
- } catch (error) {
-   console.error('Error closing database pool:', error);
-   process.exit(1)
- }
+  console.log('SIGTERM received, shutting down gracefully');
+  // Force exit if in-flight requests (e.g. slow AI calls) take too long
+  setTimeout(() => {
+    console.error('Shutdown timed out, forcing exit');
+    process.exit(1);
+  }, 10000).unref();
+
+  try {
+    // Close the server first (stop accepting new connections, let in-flight requests finish)
+    if (server) {
+      await new Promise((resolve, reject) => server.close(err => err ? reject(err) : resolve()));
+      console.log('HTTP server closed');
+    }
+    // Then close database pool
+    await pool.end();
+    console.log('Database pool closed');
+    process.exit(0)
+  } catch (error) {
+    console.error('Error during shutdown:', error);
+    process.exit(1)
+  }
 }
