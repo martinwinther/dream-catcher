@@ -2,6 +2,7 @@ import express from 'express';
 import pool from '../config/database.js';
 import { getDreamInterpretation } from '../utils/ai-openrouter.js'; // or '../utils/ai-openai.js' / '../utils/ai-gemini.js'
 import { validateText } from '../utils/validateText.js'
+import { createDreamLimiter } from '../utils/rateLimit.js';
 
 const router = express.Router();
 
@@ -33,7 +34,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create new dream with AI interpretation
-router.post('/', async (req, res) => {
+router.post('/', createDreamLimiter, async (req, res) => {
   console.log('POST /api/dreams received');
   console.log('Request body:', req.body);
 
