@@ -11,18 +11,13 @@ const __dirname = dirname(__filename);
 
 const app = express();
 
-/*
-Challenge:
-  1. Push this code to GitHub.
-  hint.md for git command help.
-*/
 
 if (process.env.NODE_ENV === 'production'){
   app.use(helmet());
 }
 
 const PORT = process.env.PORT || 3001;
- 
+
 // Middleware
 app.use(express.json());
 app.use(express.static(join(__dirname, 'public')));
